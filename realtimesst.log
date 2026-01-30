@@ -1,0 +1,40 @@
+2026-01-27 15:31:03.953 - RealTimeSTT: realtimestt - INFO - Starting RealTimeSTT
+2026-01-27 15:31:03.972 - RealTimeSTT: realtimestt - INFO - Initializing audio recording (creating pyAudio input stream, sample rate: 16000 buffer size: 512
+2026-01-27 15:31:03.982 - RealTimeSTT: realtimestt - INFO - Initializing WebRTC voice with Sensitivity 3
+2026-01-27 15:31:03.983 - RealTimeSTT: realtimestt - DEBUG - WebRTC VAD voice activity detection engine initialized successfully
+2026-01-27 15:31:04.562 - RealTimeSTT: realtimestt - DEBUG - Silero VAD voice activity detection engine initialized successfully
+2026-01-27 15:31:04.564 - RealTimeSTT: realtimestt - DEBUG - Starting realtime worker
+2026-01-27 15:31:04.564 - RealTimeSTT: realtimestt - DEBUG - Waiting for main transcription model to start
+2026-01-27 15:31:58.070 - RealTimeSTT: realtimestt - DEBUG - Main transcription model ready
+2026-01-27 15:31:58.341 - RealTimeSTT: realtimestt - DEBUG - RealtimeSTT initialization completed successfully
+2026-01-27 15:31:58.653 - RealTimeSTT: realtimestt - INFO - Setting listen time
+2026-01-27 15:31:58.653 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'listening'
+2026-01-27 15:31:58.811 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording start
+2026-01-27 15:32:18.343 - RealTimeSTT: realtimestt - DEBUG - Receive from stdout pipe
+2026-01-27 15:32:18.352 - RealTimeSTT: realtimestt - DEBUG - No samples removed, final audio length: 0
+2026-01-27 15:32:18.352 - RealTimeSTT: realtimestt - INFO - State changed from 'listening' to 'inactive'
+2026-01-27 15:32:18.357 - RealTimeSTT: realtimestt - INFO - None
+2026-01-27 15:32:18.860 - RealTimeSTT: realtimestt - DEBUG - Finishing recording thread
+2026-01-27 15:32:18.865 - RealTimeSTT: realtimestt - DEBUG - Terminating reader process
+2026-01-27 15:32:22.985 - RealTimeSTT: realtimestt - DEBUG - Terminating transcription process
+2026-01-27 15:32:23.000 - RealTimeSTT: realtimestt - DEBUG - Finishing realtime thread
+2026-01-27 15:54:13.121 - RealTimeSTT: realtimestt - INFO - Starting RealTimeSTT
+2026-01-27 15:54:13.134 - RealTimeSTT: realtimestt - INFO - Initializing audio recording (creating pyAudio input stream, sample rate: 16000 buffer size: 512
+2026-01-27 15:54:13.145 - RealTimeSTT: realtimestt - INFO - Initializing WebRTC voice with Sensitivity 3
+2026-01-27 15:54:13.145 - RealTimeSTT: realtimestt - DEBUG - WebRTC VAD voice activity detection engine initialized successfully
+2026-01-27 15:54:13.640 - RealTimeSTT: realtimestt - DEBUG - Silero VAD voice activity detection engine initialized successfully
+2026-01-27 15:54:13.640 - RealTimeSTT: realtimestt - DEBUG - Starting realtime worker
+2026-01-27 15:54:13.640 - RealTimeSTT: realtimestt - DEBUG - Waiting for main transcription model to start
+2026-01-27 15:54:57.617 - RealTimeSTT: realtimestt - DEBUG - Main transcription model ready
+2026-01-27 15:54:57.697 - RealTimeSTT: realtimestt - DEBUG - RealtimeSTT initialization completed successfully
+2026-01-27 15:54:57.910 - RealTimeSTT: realtimestt - INFO - Setting listen time
+2026-01-27 15:54:57.910 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'listening'
+2026-01-27 15:54:57.955 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording start
+2026-01-27 15:55:11.341 - RealTimeSTT: realtimestt - DEBUG - No samples removed, final audio length: 0
+2026-01-27 15:55:11.342 - RealTimeSTT: realtimestt - INFO - State changed from 'listening' to 'inactive'
+2026-01-27 15:55:11.343 - RealTimeSTT: realtimestt - DEBUG - Receive from stdout pipe
+2026-01-27 15:55:11.346 - RealTimeSTT: realtimestt - INFO - None
+2026-01-27 15:55:11.609 - RealTimeSTT: realtimestt - DEBUG - Finishing recording thread
+2026-01-27 15:55:11.619 - RealTimeSTT: realtimestt - DEBUG - Terminating reader process
+2026-01-27 15:55:13.212 - RealTimeSTT: realtimestt - DEBUG - Terminating transcription process
+2026-01-27 15:55:13.447 - RealTimeSTT: realtimestt - DEBUG - Finishing realtime thread

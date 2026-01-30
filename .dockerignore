@@ -1,0 +1,15 @@
+__pycache__
+venv
+.venv
+.git
+.gitignore
+.env
+
+# Ignore local data folders so they are created fresh or mounted via volumes
+generated_audios
+uploads
+test_data
+
+# Ignore large local models (they are downloaded or mounted)
+models
+whisper-finetuned-stutter*

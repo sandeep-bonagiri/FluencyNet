@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluency-Net AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Sora', 'sans-serif'] },
+                    colors: {
+                        primary: '#8b5cf6', // Violet 500
+                        secondary: '#06b6d4', // Cyan 500
+                        darkbg: '#0f172a', // Slate 900
+                        darkpanel: '#1e293b', // Slate 800
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-in-right': 'slideInRight 0.3s ease-out',
+                        'float': 'float 10s infinite ease-in-out alternate',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideInRight: { '0%': { transform: 'translateX(20px)', opacity: '0' }, '100%': { transform: 'translateX(0)', opacity: '1' } },
+                        float: { '0%': { transform: 'translate(0, 0) rotate(0deg)' }, '100%': { transform: 'translate(30px, 50px) rotate(10deg)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for Webkit */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
+        .dark ::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.5); }
+        
+        /* Aurora Background */
+        .aurora-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: #0f172a; overflow: hidden;
+        }
+        .blob {
+            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #4c1d95; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #0e7490; animation-delay: -5s; }
+        .blob-3 { top: 40%; left: 40%; width: 40vw; height: 40vw; background: #be185d; animation-delay: -2s; opacity: 0.2; }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dynamic Pulse Wave */
+        .pulse-ring {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border-radius: 50%; border: 2px solid rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); opacity: 0;
+        }
+        .recording .pulse-ring { animation: ripple 2s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
+        .recording .pulse-ring:nth-child(2) { animation-delay: -0.5s; }
+        .recording .pulse-ring:nth-child(3) { animation-delay: -1s; }
+        @keyframes ripple {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 200%; height: 200%; opacity: 0; }
+        }
+
+        /* Bento Grid & Interactions */
+        .bento-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bento-btn:active { transform: scale(0.98); }
+        .bento-btn.active {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            color: #8b5cf6;
+        }
+        .dark .bento-btn.active { color: #c4b5fd; border-color: rgba(139, 92, 246, 0.5); }
+        
+        .glass-bubble {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .glass-bubble {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Analysis Content Styling */
+        .analysis-content ul { list-style-type: disc; padding-left: 1.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .analysis-content li { margin-bottom: 0.25rem; }
+        .analysis-content strong { font-weight: 600; }
+    </style>
+</head>
+<body class="text-gray-800 dark:text-gray-200 transition-colors duration-300 h-screen overflow-hidden font-sans">
+
+    <!-- Aurora Background -->
+    <div class="aurora-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="flex h-full flex-row-reverse">
+        
+        <!-- RIGHT COLUMN: Control Center (Input Hub) -->
+        <div class="w-96 flex-shrink-0 glass-panel flex flex-col z-20">
+            
+            <!-- Header & Theme Toggle -->
+            <div class="p-6 border-b border-gray-200/20 dark:border-gray-700/30 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/30">FN</div>
+                    <h1 class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-400">Fluency-Net</h1>
+                </div>
+                <div>
+                    <button onclick="clearChat()" class="p-2 rounded-full hover:bg-red-100/50 dark:hover:bg-red-900/30 transition-colors text-red-500 ml-1" title="Clear Chat" aria-label="Clear Chat History">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Language Engine -->
+            <div class="p-6 space-y-6 overflow-y-auto flex-1">
+                
+                <!-- Language Selector -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Language Engine</label>
+                    <div class="relative">
+                        <select id="languageSelect" onchange="loadVoices()" class="w-full p-3 bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all appearance-none backdrop-blur-sm">
+                        <option value="auto">✨ Auto Detect</option>
+                        <option value="en">🇺🇸 English</option>
+                        <option value="te">🇮🇳 Telugu (తెలుగు)</option>
+                        <option value="hi">🇮🇳 Hindi (हिंदी)</option>
+                        <option value="bn">🇮🇳 Bengali (বাংলা)</option>
+                        <option value="mr">🇮🇳 Marathi (मराठी)</option>
+                        <option value="kn">🇮🇳 Kannada (ಕನ್ನಡ)</option>
+                        <option value="ta">🇮🇳 Tamil (தமிழ்)</option>
+                        <option value="es">🇪🇸 Spanish (Español)</option>
+                        <option value="zh">🇨🇳 Mandarin Chinese (中文)</option>
+                    </select>
+                    <div class="absolute right-3 top-3 pointer-events-none text-gray-400"><i class="fas fa-chevron-down text-xs"></i></div>
+                    </div>
+                </div>
+
+                <!-- Voice & Tone -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Voice Model</label>
+                        <select id="voiceSelect" class="w-full p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none"></select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tone</label>
+                        <select id="toneSelect" class="w-full p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none">
+                            <option value="Professional">Professional</option>
+                            <option value="Conversational">Conversational</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Empathetic">Empathetic</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Speed -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Speed</label>
+                    <select id="speedSelect" class="w-full p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl text-sm focus:ring-2 focus:ring-primary/50 outline-none">
+                        <option value="0.8">0.8x (Slow)</option>
+                        <option value="1.0">1.0x (Normal)</option>
+                        <option value="1.2" selected>1.2x (Fast)</option>
+                        <option value="1.5">1.5x (Faster)</option>
+                    </select>
+                </div>
+
+                <!-- Input Hub Tabs -->
+                <div class="mt-6">
+                    <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">Input Hub (Bento Grid)</label>
+                    
+                    <!-- Mode Switcher -->
+                    <div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1 mb-4">
+                        <button onclick="setMode('audio')" id="mode-audio" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-white dark:bg-gray-600 shadow-sm transition-all text-primary">Audio</button>
+                        <button onclick="setMode('video')" id="mode-video" class="flex-1 py-1.5 text-xs font-bold rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all">Video</button>
+                        <button onclick="setMode('stream')" id="mode-stream" class="flex-1 py-1.5 text-xs font-bold rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"><i class="fas fa-bolt text-yellow-500"></i> Live</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button onclick="switchTab('record')" id="tab-record" class="bento-btn active p-3 rounded-xl border border-transparent bg-white/50 dark:bg-gray-800/50 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 flex flex-col items-center gap-1 transition-all">
+                            <i class="fas fa-microphone text-lg"></i> Record
+                        </button>
+                        <button onclick="switchTab('upload')" id="tab-upload" class="bento-btn p-3 rounded-xl border border-transparent bg-white/50 dark:bg-gray-800/50 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 flex flex-col items-center gap-1">
+                            <i class="fas fa-cloud-upload-alt text-lg"></i> Upload
+                        </button>
+                        <button onclick="switchTab('url')" id="tab-url" class="bento-btn p-3 rounded-xl border border-transparent bg-white/50 dark:bg-gray-800/50 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 flex flex-col items-center gap-1 col-span-2">
+                            <i class="fas fa-link text-lg"></i> URL
+                        </button>
+                    </div>
+
+                    <!-- Tab Contents -->
+                    <div class="relative min-h-[220px] bg-white/30 dark:bg-gray-800/30 rounded-2xl p-4 border border-white/20 dark:border-gray-700/30">
+                        
+                        <!-- Record Tab -->
+                        <div id="content-record" class="tab-content absolute inset-0 flex flex-col items-center justify-center space-y-4 overflow-hidden rounded-2xl">
+                            <!-- Video Preview -->
+                            <div id="videoPreviewContainer" class="hidden absolute inset-0 bg-black z-0">
+                                <video id="videoPreview" autoplay muted playsinline class="w-full h-full object-cover transform scale-x-[-1] opacity-60"></video>
+                            </div>
+
+                            <!-- Countdown Overlay -->
+                            <div id="countdownOverlay" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all">
+                                <span id="countdownText" class="text-8xl font-bold text-white animate-bounce drop-shadow-lg">3</span>
+                            </div>
+
+                            <div class="relative z-10" id="recordContainer">
+                                <div class="pulse-ring"></div>
+                                <div class="pulse-ring"></div>
+                                <div class="pulse-ring"></div>
+                                <button id="recordBtn" class="w-20 h-20 rounded-full bg-gradient-to-r from-primary to-secondary text-white text-2xl shadow-xl shadow-primary/40 flex items-center justify-center transition-transform active:scale-95 z-10 relative" aria-label="Start or Stop Recording">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                            </div>
+                            <p id="statusText" class="text-sm font-medium text-gray-500 dark:text-gray-400">Tap to start</p>
+                        </div>
+
+                        <!-- Upload Tab -->
+                        <div id="content-upload" class="tab-content hidden absolute inset-0 flex flex-col justify-center">
+                            <div class="border-2 border-dashed border-gray-300/50 dark:border-gray-600/50 rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-500">Click to upload audio</p>
+                                <p class="text-xs text-gray-400 mt-1">MP3, WAV, WEBM</p>
+                                <input type="file" id="fileInput" accept="audio/*" class="hidden" onchange="handleFileSelect(this)">
+                            </div>
+                            <div id="fileInfo" class="mt-2 text-xs text-center text-primary font-medium hidden"></div>
+                            <button onclick="processUpload(this)" class="mt-4 w-full bg-primary hover:bg-violet-600 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-primary/30">Analyze File</button>
+                        </div>
+
+                        <!-- URL Tab -->
+                        <div id="content-url" class="tab-content hidden absolute inset-0 flex flex-col justify-center">
+                            <input type="text" id="urlInput" placeholder="Paste audio URL..." class="w-full p-3 bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/50 rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none mb-3">
+                            <button onclick="processUrl(this)" class="w-full bg-primary hover:bg-violet-600 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-primary/30">Analyze URL</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-200/20 dark:border-gray-700/30 text-center">
+                <p class="text-xs text-gray-400">Powered by Ollama & Whisper</p>
+            </div>
+        </div>
+
+        <!-- LEFT COLUMN: Output Feed (Workspace) -->
+        <div class="flex-1 flex flex-col h-full relative">
+            <div id="chatHistory" class="flex-1 overflow-y-auto p-8 space-y-8 z-10 scroll-smooth">
+                <!-- Empty State -->
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                    <div class="w-24 h-24 glass-bubble rounded-full shadow-lg flex items-center justify-center mb-6 animate-bounce">
+                        <i class="fas fa-wave-square text-4xl text-primary"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">Ready to Analyze</h2>
+                    <p class="text-center max-w-md">Select an input method from the control center on the right to begin your speech therapy session.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentMode = 'audio';
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Visual Toggles
+            const audioBtn = document.getElementById('mode-audio');
+            const videoBtn = document.getElementById('mode-video');
+            const streamBtn = document.getElementById('mode-stream');
+            
+            const activeClasses = ['bg-white', 'dark:bg-gray-600', 'shadow-sm', 'text-primary'];
+            const inactiveClasses = ['text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600'];
+
+            // Reset all
+            [audioBtn, videoBtn, streamBtn].forEach(btn => {
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            });
+
+            if(mode === 'audio') {
+                audioBtn.classList.add(...activeClasses);
+                audioBtn.classList.remove(...inactiveClasses);
+            } else if (mode === 'video') {
+                videoBtn.classList.add(...activeClasses);
+                videoBtn.classList.remove(...inactiveClasses);
+            } else {
+                streamBtn.classList.add(...activeClasses);
+                streamBtn.classList.remove(...inactiveClasses);
+            }
+
+            // Update Upload UI
+            const fileInput = document.getElementById('fileInput');
+            const uploadIcon = document.querySelector('#content-upload i');
+            const uploadText = document.querySelector('#content-upload p.text-xs');
+            
+            if (mode === 'video') {
+                fileInput.accept = "video/*";
+                uploadIcon.className = "fas fa-video text-3xl text-gray-400 mb-2";
+                uploadText.innerText = "MP4, WEBM, MOV";
+                document.getElementById('videoPreviewContainer').classList.remove('hidden');
+                document.querySelector('#recordBtn i').className = "fas fa-video";
+            } else if (mode === 'audio') {
+                fileInput.accept = "audio/*";
+                uploadIcon.className = "fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2";
+                uploadText.innerText = "MP3, WAV, WEBM";
+                document.getElementById('videoPreviewContainer').classList.add('hidden');
+                document.querySelector('#recordBtn i').className = "fas fa-microphone";
+            } else {
+                // Stream Mode
+                document.getElementById('videoPreviewContainer').classList.add('hidden');
+                document.querySelector('#recordBtn i').className = "fas fa-bolt";
+            }
+        }
+
+        // --- Tab Logic ---
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            
+            // Reset Buttons
+            ['record', 'upload', 'url'].forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                if(btn) {
+                    btn.classList.remove('active');
+                    btn.classList.add('text-gray-500', 'dark:text-gray-400');
+                }
+            });
+            
+            // Active Button
+            const activeBtn = document.getElementById('tab-' + tab);
+            if(activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+            }
+        }
+
+        // Configuration
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        
+        // Streaming Variables
+        let ws;
+        let audioContext;
+        let workletNode;
+        let streamUserMessageId = null;
+        let streamAgentMessageId = null;
+        let thoughtBuffer = "";
+
+        const messageBlobs = {}; // Store blobs in memory for re-processing
+
+        let currentAgentAudio = null;
+        let isAgentSpeaking = false;
+        // --- Session Management (Memory) ---
+        const sessionId = sessionStorage.getItem('sessionId') || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('sessionId', sessionId);
+
+        function stopAllAudio() {
+            if (currentAgentAudio) {
+                currentAgentAudio.pause();
+                currentAgentAudio.currentTime = 0;
+            }
+            document.querySelectorAll('audio').forEach(a => a.pause());
+        }
+
+        // Initialize Options
+        async function loadVoices() {
+            const select = document.getElementById('voiceSelect');
+            try {
+                const res = await fetch('/voices');
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const voices = await res.json();
+                const lang = document.getElementById('languageSelect').value;
+                select.innerHTML = ''; // Clear existing options
+                
+                let list = [];
+                if (lang === 'auto') {
+                    list = Object.values(voices).flat();
+                } else {
+                    list = voices[lang] || [];
+                }
+
+                if (list.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = "";
+                    opt.text = "No voices available";
+                    select.appendChild(opt);
+                }
+
+                list.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.text = v.name;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                alert("Critical Error: Could not load voice models from the server.\nPlease ensure the backend is running and refresh the page.");
+            }
+        }
+
+        // --- UI Functions ---
+
+        function appendUserMessage(text, media = null, transcription = null, save = true, existingId = null) {
+            const chatHistory = document.getElementById('chatHistory');
+            const emptyState = document.getElementById('emptyState');
+            if(emptyState) emptyState.style.display = 'none';
+            
+            const div = document.createElement('div');
+            const messageId = existingId || `user-msg-${Date.now()}`;
+            div.id = messageId;
+            div.className = 'flex justify-end animate-slide-in-right w-full';
+            
+            let innerContent = `
+                <div class="group relative max-w-[80%]">
+                    <div class="user-bubble bg-gradient-to-r from-primary to-secondary text-white rounded-2xl rounded-tr-sm p-4 shadow-lg shadow-primary/20">
+                        <div class="text-xs opacity-70 mb-1 uppercase tracking-wide font-bold">You</div>
+                        ${text ? `<div class="text-sm">${text}</div>` : ''}
+                `;
+            
+            // Add action buttons for all inputs (text or audio)
+            innerContent += `
+                <div class="absolute top-2 -left-14 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="reprocessMessage('${messageId}')" class="p-2 rounded-full bg-gray-200/50 dark:bg-gray-700/50 hover:bg-gray-300/50 dark:hover:bg-gray-600/50 backdrop-blur-sm text-gray-500 dark:text-gray-400 text-xs" title="Re-analyze"><i class="fas fa-sync-alt"></i></button>
+                    <button onclick="deleteMessage('${messageId}')" class="p-2 rounded-full bg-gray-200/50 dark:bg-gray-700/50 hover:bg-gray-300/50 dark:hover:bg-gray-600/50 backdrop-blur-sm text-gray-500 dark:text-gray-400 text-xs" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+
+            if (media) {
+                messageBlobs[messageId] = media; // Store blob for re-processing
+                let url;
+                let isVideo = false;
+
+                if (typeof media === 'string') {
+                    url = media;
+                    // Simple extension check for URLs
+                    isVideo = /\.(mp4|webm|mov|mkv|avi)$/i.test(url);
+                } else {
+                    url = URL.createObjectURL(media);
+                    // Check MIME type for Blobs/Files
+                    isVideo = media.type.startsWith('video/');
+                }
+
+                if (isVideo) {
+                    innerContent += `<div class="mt-2 bg-black/20 rounded p-2"><video controls src="${url}" class="w-full max-h-64 rounded"></video></div>`;
+                } else {
+                    innerContent += `<div class="mt-2 bg-white/10 rounded p-2"><audio controls src="${url}" class="w-full h-8"></audio></div>`;
+                }
+            }
+
+            if (transcription) {
+                innerContent += `<div class="mt-2 text-xs italic opacity-80 border-t border-white/20 pt-2">"${transcription}"</div>`;
+            }
+            
+            innerContent += `</div></div>`;
+            div.innerHTML = innerContent;
+            chatHistory.appendChild(div);
+            scrollToBottom();
+            
+            if (save) {
+                saveToHistory(messageId, 'user', { text, transcription });
+            }
+            return messageId;
+        }
+
+        function updateUserMessageWithTranscription(messageId, transcription) {
+            const messageDiv = document.getElementById(messageId);
+            if (messageDiv && transcription) {
+                const bubble = messageDiv.querySelector('.user-bubble');
+                if(bubble) {
+                    const tBox = document.createElement('div');
+                    tBox.className = 'mt-2 text-xs italic opacity-80 border-t border-white/20 pt-2';
+                    tBox.innerText = `"${transcription}"`;
+                    bubble.appendChild(tBox);
+                }
+                
+                // Update history
+                let history = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+                const item = history.find(i => i.id === messageId);
+                if (item) {
+                    item.content.transcription = transcription;
+                    sessionStorage.setItem('chatHistory', JSON.stringify(history));
+                }
+            }
+        }
+
+        function appendAgentMessage(data, save = true) {
+            const chatHistory = document.getElementById('chatHistory');
+            const div = document.createElement('div');
+            div.className = 'flex justify-start animate-fade-in w-full mb-4';
+            // Allow updating existing message if ID provided
+            if (data.id) div.id = data.id;
+            else div.id = `agent-msg-${Date.now()}`;
+            
+            let content = `
+                <div class="group relative max-w-[90%] w-full">
+                     <div class="absolute top-2 -right-10 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="regenerateAnalysis(this, '${data.transcription.replace(/'/g, "\\'")}')" class="p-2 rounded-full bg-white/20 dark:bg-gray-900/50 hover:bg-white/40 dark:hover:bg-gray-900 backdrop-blur-sm text-gray-500 dark:text-gray-400 text-xs" title="Regenerate Analysis"><i class="fas fa-redo"></i></button>
+                        <button onclick="deleteMessage('${div.id}')" class="p-2 rounded-full bg-white/20 dark:bg-gray-900/50 hover:bg-white/40 dark:hover:bg-gray-900 backdrop-blur-sm text-gray-500 dark:text-gray-400 text-xs" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="glass-bubble rounded-2xl rounded-tl-sm p-6 shadow-xl">
+                        <div class="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                            <div class="w-6 h-6 rounded bg-secondary flex items-center justify-center text-white text-xs"><i class="fas fa-robot"></i></div>
+                            <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Vocal Agent Analysis</span>
+                        </div>
+                    </div>
+            `;
+
+            // Chain of Thought Section (Collapsible)
+            if (data.thoughts) {
+                content += `
+                    <div class="mb-4 bg-gray-100 dark:bg-gray-900/50 rounded-lg p-3 text-xs font-mono text-gray-600 dark:text-gray-400 border-l-2 border-gray-400">
+                        <div class="font-bold mb-1 flex items-center gap-2"><i class="fas fa-brain"></i> Reasoning Process</div>
+                        <div class="whitespace-pre-wrap leading-relaxed">${data.thoughts.replace(/<thought>|<\/thought>/g, '')}</div>
+                    </div>
+            `;
+            }
+            
+            // Difficulty Level Badge
+            if (data.response.level) {
+                let badgeColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                if (data.response.level === 'Beginner') badgeColor = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                if (data.response.level === 'Intermediate') badgeColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+                if (data.response.level === 'Advanced') badgeColor = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                
+                content += `<span class="inline-block px-2 py-1 rounded text-xs font-bold ${badgeColor} mb-3">${data.response.level}</span>`;
+            }
+
+            // Clinical Details (Classification & Demographics)
+            if (data.response.classification || data.response.demographics) {
+                 content += `
+                    <div class="flex flex-wrap gap-2 mb-4 text-xs">
+                        ${data.response.classification ? `<span class="px-2 py-1 rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 font-semibold">Type: ${data.response.classification}</span>` : ''}
+                        ${data.response.demographics ? `<span class="px-2 py-1 rounded bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Subject: ${data.response.demographics}</span>` : ''}
+                    </div>
+                 `;
+            }
+
+            // Corrected Text
+            content += `
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-1">Fluent Speech</h3>
+                    <p id="fluent-text-${Date.now()}" class="text-lg font-medium text-gray-800 dark:text-gray-100 leading-relaxed">${data.response.text}</p>
+                    ${data.response.english_translation ? `<div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700"><h4 class="text-xs font-semibold text-gray-400 mb-1 uppercase">English Translation</h4><p class="text-md text-gray-600 dark:text-gray-300 italic">${data.response.english_translation}</p></div>` : ''}
+                </div>
+            `;
+            
+            // Output Media (Video or Audio)
+            if (data.response.video_url) {
+                // Video Output
+                content += `
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white"><i class="fas fa-video"></i></div>
+                            <span class="text-xs font-bold text-gray-500 dark:text-gray-400">Dubbed Video Output</span>
+                        </div>
+                        <video controls src="${data.response.video_url}" class="w-full rounded-lg shadow-sm mb-2"></video>
+                        <div class="flex justify-end gap-3">
+                            <a href="${data.response.video_url}" download="fluent_video.mp4" class="text-xs text-primary hover:underline flex items-center gap-1"><i class="fas fa-download"></i> Video</a>
+                            ${data.response.audio_url ? `<a href="${data.response.audio_url}" download="fluent_audio.wav" class="text-xs text-gray-500 hover:text-primary hover:underline flex items-center gap-1"><i class="fas fa-music"></i> Audio Only</a>` : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (data.response.audio_url) {
+                // Audio Output
+                // Add ID to control playback for barge-in
+                const audioId = `agent-audio-${Date.now()}`;
+                content += `
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-4 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white"><i class="fas fa-volume-up"></i></div>
+                        <audio id="${audioId}" controls src="${data.response.audio_url}" class="w-full h-8"></audio>
+                        <button onclick="regenerateAudio(this, '${data.response.text.replace(/'/g, "\\'")}', '${data.detected_language}', '${audioId}')" class="p-2 text-gray-400 hover:text-primary transition-colors" title="Regenerate Voice" aria-label="Regenerate Voice">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <a href="${data.response.audio_url}" download="fluent_speech.wav" class="p-2 text-gray-400 hover:text-green-500 transition-colors" title="Download Audio" aria-label="Download Audio">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                `;
+            }
+
+            // Metrics Dashboard
+            if (data.response.metrics) {
+                content += `
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
+                            <div class="text-xs text-gray-400">Words</div>
+                            <div class="font-bold text-gray-700 dark:text-gray-200">${data.response.metrics.words}</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
+                            <div class="text-xs text-gray-400">Disfluencies</div>
+                            <div class="font-bold text-red-500">${data.response.metrics.disfluencies}</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center">
+                            <div class="text-xs text-gray-400">Fluency</div>
+                            <div class="font-bold text-green-500">${data.response.metrics.rate}%</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Analysis Content
+            content += `
+                <div class="space-y-4 text-sm">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+                        <h4 class="font-bold text-blue-700 dark:text-blue-300 mb-2">Analysis</h4>
+                        <div class="analysis-content text-gray-700 dark:text-gray-300 text-sm">
+                            ${data.response.analysis || 'No analysis available.'}
+                        </div>
+                        ${(data.response.soap && (data.response.soap.a === 'JSON Error' || data.response.soap.a === 'Processing Error')) ? 
+                            `<div class="mt-3">
+                                <button onclick="regenerateAnalysis(this, '${data.transcription ? data.transcription.replace(/'/g, "\\'") : ''}')" class="bg-red-500/80 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-2">
+                                    <i class="fas fa-redo"></i> Retry Analysis
+                                </button>
+                            </div>` 
+                            : ''
+                        }
+                    </div>
+                    
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border-l-4 border-yellow-500">
+                        <h4 class="font-bold text-yellow-700 dark:text-yellow-300 mb-2">Therapy Exercises & Suggestions</h4>
+                        <div class="analysis-content text-gray-700 dark:text-gray-300 text-sm">
+                            ${data.response.suggestions || 'No suggestions available.'}
+                        </div>
+                    </div>
+            `;
+
+            // SOAP Notes
+            if (data.response.soap) {
+                content += `
+                    <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border-l-4 border-green-500">
+                        <h4 class="font-bold text-green-700 dark:text-green-300 mb-2">SOAP Notes (Clinical Documentation)</h4>
+                        <div class="grid grid-cols-1 gap-2 text-sm">
+                            <div><span class="font-bold text-gray-600 dark:text-gray-400">S:</span> <span class="text-gray-700 dark:text-gray-300">${data.response.soap.s || '-'}</span></div>
+                            <div><span class="font-bold text-gray-600 dark:text-gray-400">O:</span> <span class="text-gray-700 dark:text-gray-300">${data.response.soap.o || '-'}</span></div>
+                            <div><span class="font-bold text-gray-600 dark:text-gray-400">A:</span> <span class="text-gray-700 dark:text-gray-300">${data.response.soap.a || '-'}</span></div>
+                            <div><span class="font-bold text-gray-600 dark:text-gray-400">P:</span> <span class="text-gray-700 dark:text-gray-300">${data.response.soap.p || '-'}</span></div>
+                        </div>
+                    </div>
+            `;
+            }
+            content += `</div></div></div>`;
+            div.innerHTML = content;
+            chatHistory.appendChild(div);
+            scrollToBottom();
+
+            // Attach Event Listeners for VAD (Barge-in)
+            if (data.response.audio_url) {
+                const audioEl = div.querySelector('audio');
+                if (audioEl) {
+                    audioEl.onplay = () => { isAgentSpeaking = true; currentAgentAudio = audioEl; };
+                    audioEl.onended = () => { isAgentSpeaking = false; currentAgentAudio = null; };
+                    audioEl.onpause = () => { isAgentSpeaking = false; };
+                }
+            }
+            
+            if (save) {
+                saveToHistory(`agent-msg-${Date.now()}`, 'agent', null, data);
+            }
+        }
+
+        function appendLoading() {
+            const chatHistory = document.getElementById('chatHistory');
+            const div = document.createElement('div');
+            div.id = 'loadingMessage';
+            div.className = 'flex justify-start animate-fade-in mb-4';
+            div.innerHTML = `
+                <div class="glass-bubble rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center gap-3">
+                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <span class="text-sm text-gray-500 ml-2">Analyzing speech patterns...</span>
+                </div>`;
+            chatHistory.appendChild(div);
+            scrollToBottom();
+        }
+
+        function removeLoading() {
+            const loading = document.getElementById('loadingMessage');
+            if(loading) loading.remove();
+        }
+
+        function scrollToBottom() {
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function handleFileSelect(input) {
+            const fileInfo = document.getElementById('fileInfo');
+            if(input.files[0]) {
+                fileInfo.innerText = `Selected: ${input.files[0].name}`;
+                fileInfo.classList.remove('hidden');
+            }
+        }
+
+        // --- History Management ---
+        function saveToHistory(id, role, content, data = null) {
+            try {
+                let history = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+                // Check if exists to update or push new
+                const index = history.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    history[index] = { id, role, content, data, timestamp: history[index].timestamp };
+                } else {
+                    history.push({ id, role, content, data, timestamp: Date.now() });
+                }
+                sessionStorage.setItem('chatHistory', JSON.stringify(history));
+            } catch (e) {
+                console.error("Failed to save history:", e);
+            }
+        }
+
+        function loadHistory() {
+            try {
+                let history = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+                if (history.length > 0) {
+                    const emptyState = document.getElementById('emptyState');
+                    if(emptyState) emptyState.style.display = 'none';
+                    
+                    history.forEach(item => {
+                        if (item.role === 'user') {
+                            // Note: Audio blobs cannot be restored from sessionStorage easily, so we pass null
+                            appendUserMessage(item.content.text, item.content.mediaUrl || null, item.content.transcription, false, item.id); 
+                        } else if (item.role === 'agent') {
+                            appendAgentMessage(item.data, false);
+                        }
+                    });
+                    scrollToBottom();
+                }
+            } catch (e) {
+                console.error("Failed to load chat history:", e);
+                sessionStorage.removeItem('chatHistory'); // Clear corrupted history
+            }
+        }
+        
+        function clearChat() {
+            if(confirm("Are you sure you want to clear the chat history?")) {
+                sessionStorage.removeItem('chatHistory');
+                location.reload();
+            }
+        }
+
+        function deleteMessage(messageId) {
+            const messageEl = document.getElementById(messageId);
+            if (messageEl && confirm("Are you sure you want to delete this message?")) {
+                messageEl.remove();
+                delete messageBlobs[messageId]; // Cleanup memory
+                // Also remove from sessionStorage
+                let history = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+                history = history.filter(item => item.id !== messageId);
+                sessionStorage.setItem('chatHistory', JSON.stringify(history));
+            }
+        }
+
+        async function reprocessMessage(messageId) {
+            const blob = messageBlobs[messageId];
+            if (!blob) {
+                alert("Cannot re-process this message (audio data not available from previous session).");
+                return;
+            }
+            
+            const messageDiv = document.getElementById(messageId);
+            const btn = messageDiv.querySelector('button[title="Re-analyze"]');
+            const originalHtml = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            try {
+                // Pass null for btn so processAudio doesn't override our custom spinner logic
+                await processAudio(blob, null, null); 
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        // --- Logic ---
+
+        async function regenerateAudio(btn, text, lang, audioId) {
+            const icon = btn.querySelector('i');
+            const originalClass = icon.className;
+            icon.className = 'fas fa-spinner fa-spin';
+            
+            const formData = new FormData();
+            formData.append('text', text);
+            formData.append('lang', lang);
+            formData.append('voice', document.getElementById('voiceSelect').value);
+
+            try {
+                const res = await fetch('/process/regenerate', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.audio_url) {
+                    const audio = document.getElementById(audioId);
+                    audio.src = data.audio_url;
+                    audio.play();
+                }
+            } catch (e) {
+                console.error("Failed to regenerate audio:", e);
+                alert("Connection Error: " + e.message + "\n\nPlease ensure the backend server is running.");
+            } finally {
+                icon.className = originalClass;
+            }
+        }
+
+        async function regenerateAnalysis(btn, originalTranscription) {
+            const icon = btn.querySelector('i');
+            const originalClass = icon.className;
+            icon.className = 'fas fa-spinner fa-spin';
+            btn.disabled = true;
+
+            // Find the parent message card to replace it
+            const agentCard = btn.closest('.flex.justify-start');
+
+            appendLoading(); // Show a global loading indicator
+
+            const formData = new FormData();
+            // We create a dummy blob because the endpoint expects a file.
+            // The key part is sending the original transcription.
+            const dummyBlob = new Blob([originalTranscription], { type: 'text/plain' });
+            formData.append('file', dummyBlob, 'regeneration.txt'); // The file content is the transcription
+            formData.append('voice', document.getElementById('voiceSelect').value);
+            formData.append('tone', document.getElementById('toneSelect').value);
+            formData.append('speed', document.getElementById('speedSelect').value);
+            formData.append('language', document.getElementById('languageSelect').value);
+            formData.append('session_id', sessionId);
+
+            try {
+                // We call the main processing endpoint again with the original text
+                const res = await fetch('/api/process', { method: 'POST', body: formData });
+                const data = await res.json();
+                removeLoading();
+                if (data.status === 'success') {
+                    // Replace the old card with the new one
+                    agentCard.remove();
+                    appendAgentMessage(data);
+                } else {
+                    alert("Failed to regenerate analysis: " + data.message);
+                }
+            } catch (e) {
+                removeLoading();
+                alert("Connection error during regeneration: " + e.message);
+            } finally {
+                icon.className = originalClass;
+                btn.disabled = false;
+            }
+        }
+
+        async function processUpload(btn) {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+            const userMessageId = appendUserMessage(`Uploaded: ${file.name}`, file);
+            await processAudio(file, userMessageId, btn);
+        }
+
+        async function processUrl(btn) {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            if (!url) {
+                alert("Please enter a URL.");
+                return;
+            }
+
+            const userMessageId = appendUserMessage(`URL: ${url}`, url);
+            
+            appendLoading();
+            let originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            const formData = new FormData();
+            formData.append('url', url);
+            formData.append('voice', document.getElementById('voiceSelect').value);
+            formData.append('tone', document.getElementById('toneSelect').value);
+            formData.append('speed', document.getElementById('speedSelect').value);
+            formData.append('language', document.getElementById('languageSelect').value);
+            formData.append('session_id', sessionId);
+
+            try {
+                const res = await fetch('/process/url', { method: 'POST', body: formData });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`Server Error (${res.status}): ${errText.substring(0, 100)}...`);
+                }
+                const data = await res.json();
+                removeLoading();
+                if (data.status === 'success') {
+                    if (userMessageId) updateUserMessageWithTranscription(userMessageId, data.transcription);
+                    appendAgentMessage(data);
+                } else {
+                    alert("Processing Error: " + (data.message || "Unknown error occurred."));
+                }
+            } catch (e) {
+                removeLoading();
+                console.error("URL Processing Error:", e);
+                alert("Connection Error: " + e.message + "\n\nPlease ensure the backend server is running and the URL is accessible.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        async function processAudio(blob, userMessageId, btn) {
+            appendLoading();
+            let originalText = '';
+            if(btn) {
+                originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            }
+            
+            const formData = new FormData();
+            const filename = blob.name || 'recording.webm';
+            formData.append('file', blob, filename);
+            formData.append('voice', document.getElementById('voiceSelect').value);
+            formData.append('tone', document.getElementById('toneSelect').value);
+            formData.append('speed', document.getElementById('speedSelect').value);
+            formData.append('language', document.getElementById('languageSelect').value);
+            formData.append('session_id', sessionId);
+
+            try {
+                const res = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`Server Error (${res.status}): ${errText.substring(0, 100)}...`);
+                }
+
+                const data = await res.json();
+                removeLoading();
+                
+                if (data.status === 'success') {
+                    if (userMessageId) updateUserMessageWithTranscription(userMessageId, data.transcription);
+                    appendAgentMessage(data);
+                } else {
+                    alert("Processing Error: " + (data.message || "Unknown error occurred."));
+                }
+            } catch (e) {
+                removeLoading();
+                console.error("Audio Processing Error:", e);
+                alert("Connection Error: " + e.message + "\n\nPlease ensure the backend server is running.");
+            } finally {
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+        }
+
+        // --- WebSocket Streaming Logic ---
+        
+        const audioWorkletCode = `
+        class AudioProcessor extends AudioWorkletProcessor {
+            process(inputs, outputs, parameters) {
+                const input = inputs[0];
+                if (input.length > 0) {
+                    const channelData = input[0];
+                    this.port.postMessage(channelData);
+                }
+                return true;
+            }
+        }
+        registerProcessor('audio-processor', AudioProcessor);
+        `;
+
+        async function startStreaming() {
+            const statusText = document.getElementById('statusText');
+            statusText.innerText = "Connecting...";
+            
+            // Initialize WebSocket
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            ws.binaryType = 'arraybuffer';
+            let noiseFloor = 0.005; // Initialize baseline noise floor
+
+            ws.onopen = async () => {
+                statusText.innerText = "Listening... (Speak now)";
+                // Send configuration with Session ID
+                ws.send(JSON.stringify({ action: "config", session_id: sessionId }));
+                
+                document.getElementById('recordContainer').classList.add('recording');
+                
+                // Initialize Audio
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioContext.createMediaStreamSource(stream);
+                
+                const blob = new Blob([audioWorkletCode], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                await audioContext.audioWorklet.addModule(url);
+                
+                workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
+                
+                workletNode.port.onmessage = (event) => {
+                    const inputData = event.data;
+                    let sum = 0;
+                    for (let i = 0; i < inputData.length; i++) {
+                        sum += inputData[i] * inputData[i];
+                    }
+                    const rms = Math.sqrt(sum / inputData.length);
+
+                    // Adaptive Noise Floor: Update baseline
+                    if (rms < noiseFloor) {
+                        noiseFloor = 0.90 * noiseFloor + 0.10 * rms; // Adapt quickly to quiet
+                    } else {
+                        noiseFloor = 0.999 * noiseFloor + 0.001 * rms; // Adapt very slowly to noise
+                    }
+
+                    // --- Barge-in Logic: Detect User Speech ---
+                    if (isAgentSpeaking) {
+                        const dynamicThreshold = Math.max(0.02, Math.min(0.15, noiseFloor * 5));
+                        if (rms > dynamicThreshold) { // Dynamic threshold
+                            stopAllAudio();
+                        }
+                    }
+
+                    if (ws.readyState === WebSocket.OPEN) {
+                        // Send Float32Array directly
+                        ws.send(event.data);
+                    }
+                };
+                
+                source.connect(workletNode);
+                workletNode.connect(audioContext.destination); // Keep alive
+                
+                // Create placeholder UI
+                streamUserMessageId = appendUserMessage("...", null, null, false);
+                thoughtBuffer = "";
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                
+                if (msg.type === 'transcription') {
+                    updateUserMessageWithTranscription(streamUserMessageId, msg.text);
+                } else if (msg.type === 'thought_stream') {
+                    // Accumulate thoughts
+                    thoughtBuffer += msg.chunk;
+                    // Update UI (Create a temporary agent message if not exists)
+                    if (!streamAgentMessageId) {
+                        streamAgentMessageId = `agent-stream-${Date.now()}`;
+                        // Create placeholder
+                        const chatHistory = document.getElementById('chatHistory');
+                        const div = document.createElement('div');
+                        div.id = streamAgentMessageId;
+                        div.className = 'flex justify-start animate-fade-in w-full mb-4';
+                        chatHistory.appendChild(div);
+                    }
+                    
+                    // Render just the thoughts for now
+                    const div = document.getElementById(streamAgentMessageId);
+                    div.innerHTML = `
+                        <div class="glass-bubble rounded-2xl rounded-tl-sm p-4 shadow-xl max-w-[90%]">
+                            <div class="flex items-center gap-2 mb-2 text-primary animate-pulse">
+                                <i class="fas fa-brain"></i> <span class="text-xs font-bold uppercase">Thinking...</span>
+                            </div>
+                            <div class="text-xs font-mono text-gray-600 dark:text-gray-300 whitespace-pre-wrap border-l-2 border-primary pl-2">${thoughtBuffer.replace(/<thought>|<\/thought>/g, '')}</div>
+                        </div>`;
+                    scrollToBottom();
+                    
+                } else if (msg.type === 'analysis') {
+                    // Final Result
+                    const div = document.getElementById(streamAgentMessageId);
+                    div.remove(); // Remove placeholder
+                    msg.data.thoughts = thoughtBuffer; // Attach thoughts to final data
+                    appendAgentMessage({ response: msg.data, transcription: msg.data.text });
+                } else if (msg.type === 'audio_url') {
+                    // Play audio automatically
+                    const audio = new Audio(msg.url);
+                    // Track state for Barge-in
+                    audio.onplay = () => { isAgentSpeaking = true; currentAgentAudio = audio; };
+                    audio.onended = () => { isAgentSpeaking = false; currentAgentAudio = null; };
+                    audio.onpause = () => { isAgentSpeaking = false; };
+                    audio.play();
+                }
+            };
+        }
+
+        function stopStreaming() {
+            if (ws) {
+                ws.send(JSON.stringify({ action: "process" }));
+                // Don't close WS immediately, wait for response
+                // But stop audio capture
+                if (workletNode) workletNode.disconnect();
+                if (audioContext) audioContext.close();
+                document.getElementById('recordContainer').classList.remove('recording');
+                document.getElementById('statusText').innerText = "Processing...";
+            }
+        }
+
+        let mediaStream;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadVoices();
+            loadHistory();
+            
+            const recordBtn = document.getElementById('recordBtn');
+            const statusText = document.getElementById('statusText');
+
+            if (recordBtn) {
+                recordBtn.addEventListener('click', async () => {
+            if (!isRecording) {
+                // Handle Streaming Mode
+                if (currentMode === 'stream') {
+                    isRecording = true;
+                    recordBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                    startStreaming();
+                    return;
+                }
+
+                // Start Recording
+                const originalBtnContent = recordBtn.innerHTML;
+                recordBtn.disabled = true;
+                recordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                statusText.innerText = "Requesting microphone access...";
+
+                stopAllAudio(); // Stop AI if user starts speaking (Barge-in)
+
+                try {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error("Microphone access not supported in this browser.");
+                    }
+                    
+                    // Configure constraints based on mode
+                    const constraints = currentMode === 'video' ? { audio: true, video: true } : { audio: true };
+                    
+                    // Reset stream if mode changed or stream inactive
+                    if (mediaStream) {
+                        const hasVideo = mediaStream.getVideoTracks().length > 0;
+                        if ((currentMode === 'video' && !hasVideo) || (currentMode === 'audio' && hasVideo)) {
+                            mediaStream.getTracks().forEach(t => t.stop());
+                            mediaStream = null;
+                        }
+                    }
+
+                    if (!mediaStream || !mediaStream.active) {
+                        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    }
+                    
+                    // Setup Preview for Video
+                    if (currentMode === 'video') {
+                        const videoEl = document.getElementById('videoPreview');
+                        videoEl.srcObject = mediaStream;
+                        videoEl.play();
+                    }
+
+                    // Optimize for speed: Use lower bitrate and efficient codec
+                    const mimeType = currentMode === 'video' ? 'video/webm;codecs=vp8,opus' : 'audio/webm;codecs=opus';
+                    const options = { mimeType: mimeType, bitsPerSecond: currentMode === 'video' ? 2500000 : 32000 };
+                    
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        delete options.mimeType; // Fallback to default
+                    }
+                    mediaRecorder = new MediaRecorder(mediaStream, options);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        // Stop the camera/microphone stream immediately after recording stops
+                        if (mediaStream) {
+                            mediaStream.getTracks().forEach(track => track.stop());
+                            mediaStream = null;
+                        }
+
+                        const blobType = currentMode === 'video' ? 'video/webm' : 'audio/webm';
+                        const audioBlob = new Blob(audioChunks, { type: blobType });
+                        const recordBtn = document.getElementById('recordBtn');
+                        const statusText = document.getElementById('statusText');
+
+                        try {
+                            if (audioBlob.size === 0) {
+                                throw new Error("Recording failed (Empty audio)");
+                            }
+
+                            const label = currentMode === 'video' ? "Video Recording" : "Audio Recording";
+                            const userMessageId = appendUserMessage(label, audioBlob);
+                            await processAudio(audioBlob, userMessageId);
+                            
+                        } catch (error) {
+                            console.error(error);
+                            statusText.innerText = error.message;
+                        } finally {
+                            // ALWAYS re-enable the button and reset the state, regardless of success or failure
+                            isRecording = false;
+                            recordBtn.disabled = false;
+                            recordBtn.innerHTML = currentMode === 'video' ? '<i class="fas fa-video"></i>' : '<i class="fas fa-microphone"></i>';
+                            recordBtn.classList.replace('from-red-500', 'from-primary');
+                            statusText.innerText = "Tap to start recording";
+                        }
+                    };
+
+                    // Countdown for Video
+                    if (currentMode === 'video') {
+                        const overlay = document.getElementById('countdownOverlay');
+                        const countText = document.getElementById('countdownText');
+                        overlay.classList.remove('hidden');
+                        
+                        for (let i = 3; i > 0; i--) {
+                            countText.innerText = i;
+                            statusText.innerText = `Starting in ${i}...`;
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
+                        overlay.classList.add('hidden');
+                    }
+
+                    mediaRecorder.start(200);
+                    isRecording = true;
+                    recordBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                    recordBtn.classList.replace('from-primary', 'from-red-500');
+                    document.getElementById('recordContainer').classList.add('recording');
+                    statusText.innerText = "Recording... Tap to stop";
+                    recordBtn.disabled = false;
+                } catch (err) {
+                    console.error("Error accessing microphone:", err);
+                    alert("Could not access microphone. " + err.message + "\n\nPlease check your browser permissions.");
+                    recordBtn.innerHTML = originalBtnContent;
+                    recordBtn.disabled = false;
+                    statusText.innerText = "Microphone access denied";
+                }
+            } else {
+                // Stop Streaming
+                if (currentMode === 'stream') {
+                    stopStreaming();
+                    isRecording = false;
+                    recordBtn.innerHTML = '<i class="fas fa-bolt"></i>';
+                    statusText.innerText = "Tap to start";
+                    return;
+                }
+
+                // Stop Recording
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    // Disable button immediately and show processing state.
+                    // The 'onstop' handler will re-enable it and reset the UI.
+                    recordBtn.disabled = true;
+                    statusText.innerText = "Processing...";
+                    document.getElementById('recordContainer').classList.remove('recording');
+                    mediaRecorder.stop();
+                }
+            }
+        });
+            }
+        });
+    </script> 
+</body>
+</html>

@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  vocal-agent:
+    build: .
+    container_name: vocal-agent
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist uploads and generated audio
+      - ./uploads:/app/uploads
+      - ./generated_audios:/app/generated_audios
+      # Mount models folder if you want to use your fine-tuned Whisper model
+      - ./models:/app/models
+    environment:
+      # Point to Ollama running on the host machine
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

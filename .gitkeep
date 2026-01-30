@@ -1,0 +1,7 @@
+# Directory for generated audio outputs
+
+```diff
+--- /dev/null
++++ c:\Users\kamal\Vocal-Agent\Vocal-Agent\generated_audios\.gitkeep
+@@ -0,0 +1,1 @@
++# Directory for generated audio outputs
